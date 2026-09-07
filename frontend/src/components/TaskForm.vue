@@ -13,9 +13,9 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useAuthStore } from '../stores/auth'
+import { useDataStore } from '../stores/data'
 
-const authStore = useAuthStore()
+const store = useDataStore()
 const title = ref('')
 const description = ref('')
 const due_date = ref('')
@@ -23,28 +23,17 @@ const error = ref('')
 
 const handleCreate = async () => {
   try {
-    const response = await fetch('http://localhost:8003/api/tasks/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authStore.token}`
-      },
-      body: JSON.stringify({
-        title: title.value,
-        description: description.value,
-        due_date: due_date.value
-      })
+    await store.createTask({
+      title: title.value,
+      description: description.value,
+      due_date: due_date.value,
+      assignee: store.selectedEmployeeId || null
     })
-    if (response.ok) {
-      alert('Задача создана!')
-      title.value = ''
-      description.value = ''
-      due_date.value = ''
-    } else {
-      error.value = 'Ошибка при создании задачи'
-    }
+    title.value = ''
+    description.value = ''
+    due_date.value = ''
   } catch (e) {
-    error.value = 'Не удалось соединиться с сервером'
+    error.value = e.message
   }
 }
 </script>

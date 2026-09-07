@@ -12,9 +12,11 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const username = ref('')
 const password = ref('')
 const error = ref('')
@@ -29,7 +31,7 @@ const handleLogin = async () => {
     const data = await response.json()
     if (response.ok) {
       authStore.setToken(data.access)
-      alert('Вход выполнен!')
+      router.push('/dashboard')
     } else {
       error.value = data.detail || 'Ошибка входа'
     }

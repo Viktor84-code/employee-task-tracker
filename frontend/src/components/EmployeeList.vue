@@ -2,34 +2,28 @@
   <div class="employee-list">
     <h2>Список сотрудников</h2>
     <ul>
-      <li v-for="employee in employees" :key="employee.id">
+      <li
+        v-for="employee in store.employees"
+        :key="employee.id"
+        :class="{ selected: store.selectedEmployeeId === employee.id }"
+        @click="store.selectEmployee(employee.id)"
+      >
         <strong>{{ employee.full_name }}</strong>
         <span>{{ employee.position }}</span>
       </li>
     </ul>
+    <p v-if="!store.loading && !store.employees.length">Сотрудники не найдены</p>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useAuthStore } from '../stores/auth'
+import { onMounted } from 'vue'
+import { useDataStore } from '../stores/data'
 
-const authStore = useAuthStore()
-const employees = ref([])
+const store = useDataStore()
 
-onMounted(async () => {
-  try {
-    const response = await fetch('http://localhost:8003/api/employees/', {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-    if (response.ok) {
-      employees.value = await response.json()
-    }
-  } catch (e) {
-    console.error('Ошибка при получении сотрудников:', e)
-  }
+onMounted(() => {
+  store.fetchEmployees()
 })
 </script>
 
@@ -49,5 +43,15 @@ li {
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+li:hover {
+  background: #f5f5f5;
+}
+li.selected {
+  background: #42b883;
+  color: white;
+  border-color: #42b883;
 }
 </style>
