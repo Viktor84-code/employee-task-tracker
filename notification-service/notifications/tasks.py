@@ -7,6 +7,9 @@ def send_email_notification(recipient_email, subject, message):
     """
     Отправляет email уведомление.
     """
+    if not recipient_email:
+        raise ValueError("Email получателя не может быть пустым.")
+
     send_mail(
         subject=subject,
         message=message,
