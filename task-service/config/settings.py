@@ -19,7 +19,10 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_spectacular',
     'tasks',
+    'users',
 ]
+
+AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
