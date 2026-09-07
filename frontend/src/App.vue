@@ -1,7 +1,19 @@
+<template>
+  <div class="container">
+    <h1>Employee Task Tracker</h1>
+
+    <!-- Компонент входа -->
+    <LoginForm />
+  </div>
+</template>
+
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
+import LoginForm from './components/LoginForm.vue'
 </script>
 
-<template>
-  <HelloWorld />
-</template>
+<style scoped>
+.container {
+  padding: 20px;
+  text-align: center;
+}
+</style>
