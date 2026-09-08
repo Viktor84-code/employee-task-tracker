@@ -5,15 +5,21 @@
 ## Архитектура
 
 - **auth-service** — авторизация (JWT), пользователи
-- **task-service** — задачи, проекты, комментарии
+- **task-service** — задачи, проекты, сотрудники
 - **notification-service** — уведомления (email)
-- **frontend** — Vue 3 + VSC
+- **frontend** — Vue 3 + Vite + Pinia
 
 ## Запуск
 
 ```bash
 docker-compose up --build -d
 ```
+
+Демо-доступ
+Логин: demo
+
+Пароль: demo12345
+
 API
 Сервис	Порт	Описание
 auth-service	8002	Регистрация, логин, пользователи
@@ -39,7 +45,7 @@ GET /api/tasks/important/ — важные задачи
 POST /api/tasks/ — создание задачи
 
 notification-service
-Уведомления через Celery
+POST /api/notifications/send/ — отправка уведомления
 
 Технологии
 Python 3.11
@@ -52,4 +58,4 @@ Redis + Celery
 
 Docker + Docker Compose
 
-Vue 3 + Vite + VSC
+Vue 3 + Vite + Pinia

@@ -653,7 +653,6 @@ class BusyEmployeesTest(TestCase):
     def test_busy_counts_only_active_tasks(self):
         response = self.client.get('/api/employees/busy/')
         busy_data = next(e for e in response.data if e['full_name'] == 'Занятый')
-        idle_data = next(e for e in response.data if e['full_name'] == 'Свободный')
         self.assertNotIn('active_tasks_count', busy_data)
 
 
