@@ -1,7 +1,7 @@
 import { useAuthStore } from './stores/auth'
 
 export const AUTH_API = 'http://localhost:8002'
-export const TASK_API = 'http://task-service:8000'
+export const TASK_API = 'http://localhost:8003'
 
 async function parseError(response) {
   let data = {}
