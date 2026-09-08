@@ -7,13 +7,20 @@
 
     <div class="content-card">
       <ul v-if="store.importantTasks.length">
-        <li v-for="task in store.importantTasks" :key="task.id" class="task-item">
+        <li v-for="item in store.importantTasks" :key="item.task" class="task-item">
           <div class="task-info">
-            <span class="task-title">{{ task.title }}</span>
+            <span class="task-title">{{ item.task }}</span>
+            <span class="task-due" v-if="item.due_date">Срок: {{ item.due_date }}</span>
           </div>
-          <span :class="['status-badge', `status-${task.status}`]">
-            {{ statusLabel(task.status) }}
-          </span>
+          <div class="employee-badges" v-if="item.employees && item.employees.length">
+            <span
+              v-for="name in item.employees"
+              :key="name"
+              class="employee-badge"
+            >
+              👤 {{ name }}
+            </span>
+          </div>
         </li>
       </ul>
 
@@ -32,11 +39,6 @@ import { onMounted } from 'vue'
 import { useDataStore } from '../stores/data'
 
 const store = useDataStore()
-
-const statusLabel = (status) => {
-  const labels = { new: 'Новая', in_progress: 'В работе', done: 'Завершена' }
-  return labels[status] || status
-}
 
 onMounted(() => {
   store.fetchImportantTasks()
@@ -87,6 +89,7 @@ ul {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   padding: 16px 24px;
   border-bottom: 1px solid var(--border);
 }
@@ -97,6 +100,9 @@ ul {
 
 .task-info {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .task-title {
@@ -105,29 +111,26 @@ ul {
   color: var(--text-primary);
 }
 
-.status-badge {
-  padding: 4px 12px;
+.task-due {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.employee-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.employee-badge {
+  padding: 4px 10px;
+  background: var(--warning-bg);
+  color: var(--warning);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
   white-space: nowrap;
-  margin-left: 16px;
-  flex-shrink: 0;
-}
-
-.status-new {
-  background: var(--info-bg);
-  color: var(--info);
-}
-
-.status-in_progress {
-  background: var(--warning-bg);
-  color: var(--warning);
-}
-
-.status-done {
-  background: var(--success-bg);
-  color: var(--success);
 }
 
 .empty-state {

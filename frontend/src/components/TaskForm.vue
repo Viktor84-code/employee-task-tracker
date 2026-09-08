@@ -50,6 +50,20 @@
         </select>
       </div>
 
+      <div class="form-group">
+        <label for="parent_task">Родительская задача</label>
+        <select id="parent_task" v-model="parentTask">
+          <option :value="null">Без родительской задачи</option>
+          <option
+            v-for="task in store.tasks"
+            :key="task.id"
+            :value="task.id"
+          >
+            {{ task.title }}
+          </option>
+        </select>
+      </div>
+
       <button type="submit" class="btn-create" :disabled="loading">
         {{ loading ? 'Создание...' : 'Создать задачу' }}
       </button>
@@ -69,6 +83,7 @@ const title = ref('')
 const description = ref('')
 const due_date = ref('')
 const assignee = ref(null)
+const parentTask = ref(null)
 const error = ref('')
 const success = ref(false)
 const loading = ref(false)
@@ -82,12 +97,14 @@ const handleCreate = async () => {
       title: title.value,
       description: description.value,
       due_date: due_date.value,
-      assignee: assignee.value
+      assignee: assignee.value,
+      parent_task: parentTask.value
     })
     title.value = ''
     description.value = ''
     due_date.value = ''
     assignee.value = null
+    parentTask.value = null
     success.value = true
     setTimeout(() => { success.value = false }, 2000)
   } catch (e) {
