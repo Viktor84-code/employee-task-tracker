@@ -9,8 +9,14 @@
         <router-link to="/dashboard" class="nav-link">
           <span class="nav-icon">🏠</span> Главная
         </router-link>
+        <router-link to="/employees" class="nav-link">
+          <span class="nav-icon">👥</span> Сотрудники
+        </router-link>
+        <router-link to="/tasks" class="nav-link">
+          <span class="nav-icon">📝</span> Задачи
+        </router-link>
         <router-link to="/busy" class="nav-link">
-          <span class="nav-icon">👥</span> Занятые
+          <span class="nav-icon">⏳</span> Занятые
         </router-link>
         <router-link to="/important" class="nav-link">
           <span class="nav-icon">⭐</span> Важные

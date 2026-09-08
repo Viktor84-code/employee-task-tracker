@@ -9,8 +9,8 @@
       <li
         v-for="employee in store.employees"
         :key="employee.id"
-        :class="['employee-item', { selected: store.selectedEmployeeId === employee.id }]"
-        @click="store.selectEmployee(employee.id)"
+        class="employee-item"
+        @click="goToEmployee(employee.id)"
       >
         <div class="avatar">{{ initials(employee.full_name) }}</div>
         <div class="employee-info">
@@ -28,13 +28,19 @@
 </template>
 
 <script setup>
+import { useRouter } from 'vue-router'
 import { useDataStore } from '../stores/data'
 
 const store = useDataStore()
+const router = useRouter()
 
 const initials = (name) => {
   if (!name) return '?'
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
+const goToEmployee = (id) => {
+  router.push(`/employees/${id}`)
 }
 </script>
 
@@ -91,11 +97,6 @@ ul {
 
 .employee-item:hover {
   background: var(--bg-card-hover);
-}
-
-.employee-item.selected {
-  background: rgba(99, 102, 241, 0.1);
-  border-left: 3px solid var(--accent);
 }
 
 .avatar {

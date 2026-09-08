@@ -36,6 +36,20 @@
         />
       </div>
 
+      <div class="form-group">
+        <label for="assignee">Исполнитель</label>
+        <select id="assignee" v-model="assignee">
+          <option :value="null">Не выбран</option>
+          <option
+            v-for="employee in store.employees"
+            :key="employee.id"
+            :value="employee.id"
+          >
+            {{ employee.full_name }}
+          </option>
+        </select>
+      </div>
+
       <button type="submit" class="btn-create" :disabled="loading">
         {{ loading ? 'Создание...' : 'Создать задачу' }}
       </button>
@@ -54,6 +68,7 @@ const store = useDataStore()
 const title = ref('')
 const description = ref('')
 const due_date = ref('')
+const assignee = ref(null)
 const error = ref('')
 const success = ref(false)
 const loading = ref(false)
@@ -67,11 +82,12 @@ const handleCreate = async () => {
       title: title.value,
       description: description.value,
       due_date: due_date.value,
-      assignee: store.selectedEmployeeId || null
+      assignee: assignee.value
     })
     title.value = ''
     description.value = ''
     due_date.value = ''
+    assignee.value = null
     success.value = true
     setTimeout(() => { success.value = false }, 2000)
   } catch (e) {
@@ -118,7 +134,8 @@ const handleCreate = async () => {
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: 10px 14px;
   background: var(--bg-input);

@@ -6,56 +6,58 @@
     </div>
 
     <div class="stats-grid">
-      <div class="stat-card">
+      <router-link to="/employees" class="stat-card">
         <div class="stat-icon employees-icon">👥</div>
         <div class="stat-info">
           <span class="stat-value">{{ store.employees.length }}</span>
           <span class="stat-label">Сотрудников</span>
         </div>
-      </div>
-      <div class="stat-card">
+        <span class="stat-arrow">→</span>
+      </router-link>
+      <router-link to="/tasks" class="stat-card">
         <div class="stat-icon tasks-icon">📝</div>
         <div class="stat-info">
           <span class="stat-value">{{ store.tasks.length }}</span>
           <span class="stat-label">Всего задач</span>
         </div>
-      </div>
-      <div class="stat-card">
+        <span class="stat-arrow">→</span>
+      </router-link>
+      <router-link to="/tasks" class="stat-card">
         <div class="stat-icon progress-icon">🔄</div>
         <div class="stat-info">
           <span class="stat-value">{{ inProgressCount }}</span>
           <span class="stat-label">В работе</span>
         </div>
-      </div>
-      <div class="stat-card">
+      </router-link>
+      <router-link to="/tasks" class="stat-card">
         <div class="stat-icon done-icon">✅</div>
         <div class="stat-info">
           <span class="stat-value">{{ doneCount }}</span>
           <span class="stat-label">Завершено</span>
         </div>
-      </div>
+      </router-link>
     </div>
 
-    <div class="dashboard-grid">
-      <div class="grid-section">
-        <EmployeeList />
-      </div>
-      <div class="grid-section">
-        <TaskList />
-      </div>
-      <div class="grid-section">
-        <TaskForm />
-      </div>
+    <div class="quick-actions">
+      <router-link to="/tasks" class="action-card">
+        <span class="action-icon">📝</span>
+        <span class="action-title">Задачи</span>
+        <span class="action-desc">Просмотр и создание задач</span>
+      </router-link>
+      <router-link to="/employees" class="action-card">
+        <span class="action-icon">👥</span>
+        <span class="action-title">Сотрудники</span>
+        <span class="action-desc">Список сотрудников команды</span>
+      </router-link>
     </div>
+
+    <p v-if="store.error" class="error">{{ store.error }}</p>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted } from 'vue'
 import { useDataStore } from '../stores/data'
-import EmployeeList from './EmployeeList.vue'
-import TaskList from './TaskList.vue'
-import TaskForm from './TaskForm.vue'
 
 const store = useDataStore()
 
@@ -108,6 +110,7 @@ onMounted(() => {
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  text-decoration: none;
   transition: all var(--transition);
 }
 
@@ -125,6 +128,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 22px;
+  flex-shrink: 0;
 }
 
 .employees-icon { background: var(--info-bg); }
@@ -135,6 +139,8 @@ onMounted(() => {
 .stat-info {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
 .stat-value {
@@ -150,22 +156,71 @@ onMounted(() => {
   margin-top: 4px;
 }
 
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 24px;
+.stat-arrow {
+  color: var(--text-muted);
+  font-size: 18px;
+  transition: transform var(--transition);
 }
 
-.grid-section {
-  min-width: 0;
+.stat-card:hover .stat-arrow {
+  transform: translateX(4px);
+  color: var(--accent);
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 640px;
+}
+
+.action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  text-decoration: none;
+  transition: all var(--transition);
+}
+
+.action-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.action-icon {
+  font-size: 28px;
+}
+
+.action-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.action-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.error {
+  margin-top: 24px;
+  padding: 12px;
+  background: var(--danger-bg);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--danger);
+  font-size: 14px;
+  text-align: center;
 }
 
 @media (max-width: 1200px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-  .dashboard-grid {
-    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -173,7 +228,7 @@ onMounted(() => {
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  .dashboard-grid {
+  .quick-actions {
     grid-template-columns: 1fr;
   }
 }
