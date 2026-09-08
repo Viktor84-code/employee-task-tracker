@@ -1,156 +1,168 @@
 <template>
-  <div class="task-list">
-    <h2>Список задач</h2>
-    <ul>
+  <div class="task-list card">
+    <div class="card-header">
+      <h2>Список задач</h2>
+      <span class="count">{{ filteredTasks.length }}</span>
+    </div>
+
+    <ul v-if="filteredTasks.length">
       <li
-        v-for="task in store.filteredTasks"
+        v-for="task in filteredTasks"
         :key="task.id"
-        :class="{ selected: store.selectedTaskId === task.id }"
-        @click="store.selectTask(task.id)"
+        class="task-item"
+        @click="goToTask(task.id)"
       >
         <div class="task-info">
-          <strong>{{ task.title }}</strong>
-          <span v-if="isImportant(task)" class="badge">Важная</span>
+          <span class="task-title">{{ task.title }}</span>
+          <span class="task-assignee" v-if="task.assignee_name">{{ task.assignee_name }}</span>
         </div>
-        <span :class="['status', task.status]">{{ statusLabel(task.status) }}</span>
+        <span :class="['status-dot', `dot-${task.status}`]">
+          {{ statusLabel(task.status) }}
+        </span>
       </li>
     </ul>
-    <p v-if="!store.loading && !store.filteredTasks.length">Задачи не найдены</p>
 
-    <div v-if="store.selectedTask" class="details">
-      <h3>Детали задачи</h3>
-      <p><strong>Название:</strong> {{ store.selectedTask.title }}</p>
-      <p><strong>Описание:</strong> {{ store.selectedTask.description || '—' }}</p>
-      <p><strong>Исполнитель:</strong> {{ store.selectedTask.assignee_name || '—' }}</p>
-      <p><strong>Срок:</strong> {{ store.selectedTask.due_date }}</p>
-      <p><strong>Статус:</strong> {{ statusLabel(store.selectedTask.status) }}</p>
-      <div class="status-actions">
-        <button
-          v-for="s in statuses"
-          :key="s.value"
-          :class="['status-btn', s.value, { active: store.selectedTask.status === s.value }]"
-          :disabled="store.selectedTask.status === s.value"
-          @click="changeStatus(s.value)"
-        >
-          {{ s.label }}
-        </button>
-      </div>
-      <p v-if="store.error" class="error">{{ store.error }}</p>
+    <div v-else class="empty-state">
+      <span class="empty-icon">📝</span>
+      <p>Нет задач</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useDataStore } from '../stores/data'
 
 const store = useDataStore()
+const router = useRouter()
 
-const statuses = [
-  { value: 'new', label: 'Новая' },
-  { value: 'in_progress', label: 'В работе' },
-  { value: 'done', label: 'Завершена' }
-]
+const filteredTasks = computed(() => store.filteredTasks)
 
-const importantTitles = computed(() => new Set(store.importantTasks.map((i) => i.task)))
-
-const statusLabel = (value) => statuses.find((s) => s.value === value)?.label || value
-
-const isImportant = (task) => importantTitles.value.has(task.title)
-
-const changeStatus = async (status) => {
-  await store.updateTaskStatus(store.selectedTask.id, status)
+const statusLabel = (status) => {
+  const labels = { new: 'Новая', in_progress: 'В работе', done: 'Завершена' }
+  return labels[status] || status
 }
 
-onMounted(() => {
-  store.fetchTasks()
-  store.fetchImportantTasks()
-})
+const goToTask = (id) => {
+  router.push(`/tasks/${id}`)
+}
 </script>
 
 <style scoped>
-.task-list {
-  padding: 20px;
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
 }
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.card-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.count {
+  padding: 2px 10px;
+  background: var(--bg-input);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
 ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
-li {
-  margin-bottom: 10px;
+
+.task-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all var(--transition);
 }
-li:hover {
-  background: #f5f5f5;
+
+.task-item:last-child {
+  border-bottom: none;
 }
-li.selected {
-  background: #e7f7ef;
-  border-color: #42b883;
+
+.task-item:hover {
+  background: var(--bg-card-hover);
 }
+
 .task-info {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
-.badge {
-  background: #d9534f;
-  color: white;
-  font-size: 11px;
-  padding: 2px 6px;
-  border-radius: 8px;
+
+.task-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.status {
-  padding: 4px 8px;
-  border-radius: 4px;
+
+.task-assignee {
   font-size: 12px;
+  color: var(--text-muted);
 }
-.new {
-  background: #f0f0f0;
+
+.status-dot {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 12px;
 }
-.in_progress {
-  background: #fff3cd;
+
+.dot-new {
+  background: var(--info-bg);
+  color: var(--info);
 }
-.done {
-  background: #d4edda;
+
+.dot-in_progress {
+  background: var(--warning-bg);
+  color: var(--warning);
 }
-.details {
-  margin-top: 20px;
-  padding: 15px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  text-align: left;
+
+.dot-done {
+  background: var(--success-bg);
+  color: var(--success);
 }
-.status-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
+
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
 }
-.status-btn {
-  padding: 6px 12px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
+
+.empty-icon {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 8px;
 }
-.status-btn:hover:not(:disabled) {
-  background: #f0f0f0;
-}
-.status-btn.active {
-  border-color: #42b883;
-  background: #42b883;
-  color: white;
-}
-.status-btn:disabled {
-  cursor: default;
-}
-.error {
-  color: red;
+
+.empty-state p {
+  font-size: 14px;
 }
 </style>

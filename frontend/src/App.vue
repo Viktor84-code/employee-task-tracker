@@ -1,15 +1,29 @@
 <template>
-  <div class="container">
-    <h1>Employee Task Tracker</h1>
-
-    <nav v-if="authStore.token" class="nav">
-      <router-link to="/dashboard">Главная</router-link>
-      <router-link to="/busy">Занятые сотрудники</router-link>
-      <router-link to="/important">Важные задачи</router-link>
-      <button class="logout" @click="handleLogout">Выход</button>
+  <div id="app">
+    <nav v-if="authStore.token" class="navbar">
+      <div class="nav-brand">
+        <span class="brand-icon">📋</span>
+        <span class="brand-text">TaskTracker</span>
+      </div>
+      <div class="nav-links">
+        <router-link to="/dashboard" class="nav-link">
+          <span class="nav-icon">🏠</span> Главная
+        </router-link>
+        <router-link to="/busy" class="nav-link">
+          <span class="nav-icon">👥</span> Занятые
+        </router-link>
+        <router-link to="/important" class="nav-link">
+          <span class="nav-icon">⭐</span> Важные
+        </router-link>
+      </div>
+      <button class="btn-logout" @click="handleLogout">
+        <span>Выйти</span>
+      </button>
     </nav>
 
-    <router-view />
+    <main class="main-content">
+      <router-view />
+    </main>
   </div>
 </template>
 
@@ -27,35 +41,92 @@ const handleLogout = () => {
 </script>
 
 <style scoped>
-.container {
-  padding: 20px;
-  text-align: center;
-}
-.nav {
+.navbar {
   display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin: 20px 0;
   align-items: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  padding: 0 32px;
+  height: 64px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
 }
-.nav a {
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.brand-icon {
+  font-size: 24px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all var(--transition);
   text-decoration: none;
-  color: #42b883;
-  font-weight: bold;
-  padding: 6px 12px;
-  border-radius: 4px;
 }
-.nav a.router-link-active {
-  background: #42b883;
-  color: white;
+
+.nav-link:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
-.logout {
-  background: #d9534f;
+
+.nav-link.router-link-active {
+  background: var(--accent);
   color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 12px;
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+.nav-icon {
+  font-size: 16px;
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--danger);
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  transition: all var(--transition);
+}
+
+.btn-logout:hover {
+  background: var(--danger);
+  color: white;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.3);
+}
+
+.main-content {
+  flex: 1;
+  padding: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
 }
 </style>

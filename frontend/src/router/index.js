@@ -1,27 +1,30 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '../stores/auth'
 import LoginForm from '../components/LoginForm.vue'
 import Dashboard from '../components/Dashboard.vue'
+import TaskDetailView from '../views/TaskDetailView.vue'
 import BusyView from '../views/BusyView.vue'
 import ImportantView from '../views/ImportantView.vue'
-
-const routes = [
-  { path: '/', name: 'login', component: LoginForm },
-  { path: '/dashboard', name: 'dashboard', component: Dashboard, meta: { requiresAuth: true } },
-  { path: '/busy', name: 'busy', component: BusyView, meta: { requiresAuth: true } },
-  { path: '/important', name: 'important', component: ImportantView, meta: { requiresAuth: true } },
-  { path: '/:pathMatch(.*)*', redirect: '/' }
-]
+import { useAuthStore } from '../stores/auth'
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes: [
+    { path: '/', component: LoginForm },
+    { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true } },
+    { path: '/tasks/:id', component: TaskDetailView, meta: { requiresAuth: true } },
+    { path: '/busy', component: BusyView, meta: { requiresAuth: true } },
+    { path: '/important', component: ImportantView, meta: { requiresAuth: true } }
+  ]
 })
 
-router.beforeEach((to) => {
+router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   if (to.meta.requiresAuth && !authStore.token) {
-    return { name: 'login' }
+    next('/')
+  } else if (to.path === '/' && authStore.token) {
+    next('/dashboard')
+  } else {
+    next()
   }
 })
 
