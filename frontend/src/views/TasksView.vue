@@ -27,7 +27,7 @@ import TaskForm from '../components/TaskForm.vue'
 const store = useDataStore()
 
 onMounted(() => {
-  store.fetchTasks()
+  store.refresh()
 })
 </script>
 
