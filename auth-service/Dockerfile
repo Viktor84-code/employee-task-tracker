@@ -13,7 +13,7 @@ RUN chmod +x /entrypoint.sh
 ENV PYTHONUNBUFFERED=1
 ENV DEBUG=False
 
-RUN python manage.py collectstatic --noinput || true
+RUN python manage.py collectstatic --noinput
 
 ENTRYPOINT ["/entrypoint.sh"]
 

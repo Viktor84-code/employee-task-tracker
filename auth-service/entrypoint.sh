@@ -8,11 +8,16 @@ echo "Creating demo user..."
 python manage.py shell -c "
 from django.contrib.auth import get_user_model
 User = get_user_model()
-if not User.objects.filter(username='demo').exists():
-    User.objects.create_user(username='demo', email='demo@example.com', password='demo12345')
-    print('Demo user created')
-else:
-    print('Demo user already exists')
+demo, created = User.objects.get_or_create(
+    username='demo',
+    defaults={'email': 'demo@example.com'},
+)
+demo.email = 'demo@example.com'
+demo.is_active = True
+demo.is_staff = True
+demo.set_password('demo12345')
+demo.save()
+print('Demo user created' if created else 'Demo user password refreshed')
 "
 
 echo "Starting server..."
