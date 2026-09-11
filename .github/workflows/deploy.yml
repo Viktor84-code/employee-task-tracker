@@ -46,12 +46,15 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v5
-      - name: Deploy to server
+      - name: Deploy to Yandex Cloud via SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          HOST: ${{ secrets.HOST }}
-          USER: ${{ secrets.USER }}
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
-          ssh -o StrictHostKeyChecking=no -i key.pem $USER@$HOST "cd ~/employee-task-tracker && git pull origin develop && sudo docker-compose up -d --build"
+          ssh -i key.pem -o StrictHostKeyChecking=no briktor@93.77.161.79 "
+            cd /home/briktor/employee-task-tracker &&
+            git pull origin develop &&
+            docker compose down &&
+            docker compose up --build -d
+          "
