@@ -57,6 +57,6 @@ jobs:
           ssh -i key.pem -o StrictHostKeyChecking=no $USER@$HOST "
             cd /home/briktor/employee-task-tracker &&
             git pull origin feature/ci-cd &&
-            docker-compose down &&
+            docker-compose down --rmi local &&
             docker-compose up --build -d
           "
