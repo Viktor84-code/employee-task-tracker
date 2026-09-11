@@ -49,12 +49,14 @@ jobs:
       - name: Deploy to Yandex Cloud via SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOST: ${{ secrets.HOST }}
+          USER: ${{ secrets.USER }}
         run: |
           echo "$SSH_PRIVATE_KEY" > key.pem
           chmod 600 key.pem
-          ssh -i key.pem -o StrictHostKeyChecking=no briktor@93.77.161.79 "
+          ssh -i key.pem -o StrictHostKeyChecking=no $USER@$HOST "
             cd /home/briktor/employee-task-tracker &&
-            git pull origin develop &&
-            docker compose down &&
-            docker compose up --build -d
+            git pull origin feature/ci-cd &&
+            docker-compose down &&
+            docker-compose up --build -d
           "
