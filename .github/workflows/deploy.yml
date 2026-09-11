@@ -56,7 +56,8 @@ jobs:
           chmod 600 key.pem
           ssh -i key.pem -o StrictHostKeyChecking=no $USER@$HOST "
             cd /home/briktor/employee-task-tracker &&
-            git pull origin feature/ci-cd &&
+            git fetch origin &&
+            git reset --hard origin/feature/ci-cd &&
             docker-compose down --rmi local &&
             docker-compose up --build -d
           "
