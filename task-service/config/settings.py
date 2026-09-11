@@ -9,7 +9,7 @@ ALLOWED_HOSTS = [
     host.strip()
     for host in os.environ.get(
         'ALLOWED_HOSTS',
-        '158.160.231.42,93.77.161.79,localhost,127.0.0.1',
+        '84.201.151.212,localhost,127.0.0.1',
     ).split(',')
 ]
 
@@ -113,7 +113,7 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://158.160.231.42:5173",
+    "http://84.201.151.212:5173",
 ]
 
 # Celery
