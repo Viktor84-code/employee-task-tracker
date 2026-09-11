@@ -2,22 +2,56 @@ name: Deploy
 
 on:
   push:
-    branches: [ develop, feature/ci-cd ]
+    branches: [develop, feature/ci-cd]
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy to server
-        uses: appleboy/ssh-action@v1.0.3
+      - uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
-          host: ${{ secrets.HOST }}
-          username: ${{ secrets.USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /var/www/employee-task-tracker
-            git pull origin develop
-            docker-compose up --build -d
+          python-version: '3.11'
+      - name: Install dependencies (auth-service)
+        working-directory: ./auth-service
+        run: pip install -r requirements.txt
+      - name: Run tests (auth-service)
+        working-directory: ./auth-service
+        run: python manage.py test --settings=config.test_settings
+      - name: Install dependencies (task-service)
+        working-directory: ./task-service
+        run: pip install -r requirements.txt
+      - name: Run tests (task-service)
+        working-directory: ./task-service
+        run: python manage.py test --settings=config.test_settings
+      - name: Install dependencies (notification-service)
+        working-directory: ./notification-service
+        run: pip install -r requirements.txt
+      - name: Run tests (notification-service)
+        working-directory: ./notification-service
+        run: python manage.py test --settings=config.test_settings
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build Docker images
+        run: docker compose build
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v5
+      - name: Deploy to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOST: ${{ secrets.HOST }}
+          USER: ${{ secrets.USER }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > key.pem
+          chmod 600 key.pem
+          ssh -o StrictHostKeyChecking=no -i key.pem $USER@$HOST "cd ~/employee-task-tracker && git pull origin develop && sudo docker-compose up -d --build"
