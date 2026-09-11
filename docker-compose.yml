@@ -11,6 +11,11 @@ services:
       - auth_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   task-db:
     image: postgres:16
@@ -22,6 +27,11 @@ services:
       - task_data:/var/lib/postgresql/data
     ports:
       - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   notif-db:
     image: postgres:16
@@ -33,6 +43,11 @@ services:
       - notif_data:/var/lib/postgresql/data
     ports:
       - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
@@ -51,8 +66,10 @@ services:
       POSTGRES_HOST: auth-db
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8002"
     depends_on:
-      - auth-db
-      - redis
+      auth-db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   task-service:
     build: ./task-service
@@ -66,8 +83,10 @@ services:
       POSTGRES_HOST: task-db
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     depends_on:
-      - task-db
-      - redis
+      task-db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   notification-service:
     build: ./notification-service
@@ -81,8 +100,10 @@ services:
       POSTGRES_HOST: notif-db
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     depends_on:
-      - notif-db
-      - redis
+      notif-db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   frontend:
     build: ./frontend
