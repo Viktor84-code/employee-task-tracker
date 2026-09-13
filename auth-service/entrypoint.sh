@@ -20,5 +20,10 @@ demo.save()
 print('Demo user created' if created else 'Demo user password refreshed')
 "
 
+if [ -n "$DJANGO_SUPERUSER_USERNAME" ]; then
+  echo "Creating superuser..."
+  python manage.py createsuperuser --noinput || true
+fi
+
 echo "Starting server..."
 exec "$@"
