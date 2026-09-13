@@ -3,6 +3,7 @@ version: '3.8'
 services:
   auth-db:
     image: postgres:16
+    restart: always
     environment:
       POSTGRES_DB: auth_db
       POSTGRES_USER: postgres
@@ -11,9 +12,15 @@ services:
       - auth_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   task-db:
     image: postgres:16
+    restart: always
     environment:
       POSTGRES_DB: task_db
       POSTGRES_USER: postgres
@@ -22,9 +29,15 @@ services:
       - task_data:/var/lib/postgresql/data
     ports:
       - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   notif-db:
     image: postgres:16
+    restart: always
     environment:
       POSTGRES_DB: notif_db
       POSTGRES_USER: postgres
@@ -33,14 +46,21 @@ services:
       - notif_data:/var/lib/postgresql/data
     ports:
       - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
+    restart: always
     ports:
       - "6379:6379"
 
   auth-service:
     build: ./auth-service
+    restart: always
     ports:
       - "8002:8002"
     environment:
@@ -49,12 +69,19 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_HOST: auth-db
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME}
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8002 --workers 3
     depends_on:
-      - auth-db
-      - redis
+      auth-db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   task-service:
     build: ./task-service
+    restart: always
     ports:
       - "8003:8000"
     environment:
@@ -63,12 +90,16 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_HOST: task-db
+    command: sh -c "python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     depends_on:
-      - task-db
-      - redis
+      task-db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   notification-service:
     build: ./notification-service
+    restart: always
     ports:
       - "8004:8000"
     environment:
@@ -77,12 +108,32 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_HOST: notif-db
+    command: sh -c "python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     depends_on:
-      - notif-db
-      - redis
+      notif-db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  notification-worker:
+    build: ./notification-service
+    restart: always
+    command: celery -A config worker -l info
+    environment:
+      SECRET_KEY: ${SECRET_KEY}
+      POSTGRES_DB: notif_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST: notif-db
+    depends_on:
+      notif-db:
+        condition: service_healthy
+      redis:
+        condition: service_started
 
   frontend:
     build: ./frontend
+    restart: always
     ports:
       - "5173:80"
     depends_on:
