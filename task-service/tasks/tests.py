@@ -653,7 +653,20 @@ class BusyEmployeesTest(TestCase):
     def test_busy_counts_only_active_tasks(self):
         response = self.client.get('/api/employees/busy/')
         busy_data = next(e for e in response.data if e['full_name'] == 'Занятый')
-        self.assertNotIn('active_tasks_count', busy_data)
+        self.assertIn('active_tasks_count', busy_data)
+        self.assertEqual(busy_data['active_tasks_count'], 2)
+
+    def test_busy_returns_active_tasks_list(self):
+        response = self.client.get('/api/employees/busy/')
+        busy_data = next(e for e in response.data if e['full_name'] == 'Занятый')
+        self.assertIn('active_tasks', busy_data)
+        statuses = {t['status'] for t in busy_data['active_tasks']}
+        self.assertEqual(statuses, {'new', 'in_progress'})
+
+    def test_busy_idle_employee_has_zero_tasks(self):
+        response = self.client.get('/api/employees/busy/')
+        idle_data = next(e for e in response.data if e['full_name'] == 'Свободный')
+        self.assertEqual(idle_data['active_tasks_count'], 1)
 
 
 class ImportantTasksTest(TestCase):
@@ -776,17 +789,11 @@ class ImportantTasksTest(TestCase):
         employees = response.data[0]['employees']
         self.assertIn('Свободный сотрудник', employees)
 
-    def test_important_includes_nested_parent_assignee_when_underloaded(self):
-        grandparent = Task.objects.create(
-            title='Родительская задача',
+    def test_important_includes_assignee_when_underloaded(self):
+        important = Task.objects.create(
+            title='Важная задача',
             status='new',
             assignee=self.free,
-            due_date=date.today() + timedelta(days=5),
-        )
-        important = Task.objects.create(
-            title='Важная подзадача',
-            status='new',
-            parent_task=grandparent,
             due_date=date.today() + timedelta(days=5),
         )
         Task.objects.create(
@@ -850,6 +857,71 @@ class ImportantTasksTest(TestCase):
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['employees'], [])
 
+        def test_important_assignee_excluded_when_overloaded(self):
+            """Если исполнитель важной задачи перегружен (> min+2), его нет в кандидатах."""
+            important = Task.objects.create(
+                title='Важная задача',
+                status='new',
+                assignee=self.loaded,
+                due_date=date.today() + timedelta(days=5),
+            )
+            Task.objects.create(
+                title='Подзадача',
+                parent_task=important,
+                status='in_progress',
+                due_date=date.today() + timedelta(days=5),
+            )
+            # грузим loaded 5 активными задачами
+            for i in range(5):
+                Task.objects.create(
+                    title=f'Задача {i}',
+                    assignee=self.loaded,
+                    status='new',
+                    due_date=date.today() + timedelta(days=5),
+                )
+            response = self.client.get('/api/tasks/important/')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            employees = response.data[0]['employees']
+            self.assertNotIn('Перегруженный', employees)
+            self.assertIn('Свободный сотрудник', employees)
+
+        def test_important_includes_least_loaded_when_no_assignee(self):
+            """Если у важной задачи нет assignee, в кандидатах least_loaded."""
+            important = Task.objects.create(
+                title='Важная задача без исполнителя',
+                status='new',
+                due_date=date.today() + timedelta(days=5),
+            )
+            Task.objects.create(
+                title='Подзадача',
+                parent_task=important,
+                status='in_progress',
+                due_date=date.today() + timedelta(days=5),
+            )
+            response = self.client.get('/api/tasks/important/')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            employees = response.data[0]['employees']
+            self.assertIn('Свободный сотрудник', employees)
+
+        def test_important_deduplicates_assignee_and_least_loaded(self):
+            """Если assignee == least_loaded, в списке он один раз."""
+            important = Task.objects.create(
+                title='Важная задача',
+                status='new',
+                assignee=self.free,
+                due_date=date.today() + timedelta(days=5),
+            )
+            Task.objects.create(
+                title='Подзадача',
+                parent_task=important,
+                status='in_progress',
+                due_date=date.today() + timedelta(days=5),
+            )
+            response = self.client.get('/api/tasks/important/')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            employees = response.data[0]['employees']
+            self.assertEqual(employees.count('Свободный сотрудник'), 1)
+
 
 class CeleryTasksTest(TestCase):
 
@@ -908,3 +980,83 @@ class CeleryTasksTest(TestCase):
         self.assertEqual(sent.subject, 'Статус задачи изменён')
         self.assertEqual(sent.to, ['creator@example.com'])
         self.assertEqual(sent.body, 'Статус задачи обновлён')
+
+
+class ValidationTest(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123',
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+        self.employee = Employee.objects.create(
+            full_name='Тестовый',
+            position='Разработчик',
+            email='test@employee.com',
+        )
+
+    def test_task_due_date_in_past_rejected(self):
+        response = self.client.post('/api/tasks/', {
+            'title': 'Просроченная',
+            'status': 'new',
+            'due_date': (date.today() - timedelta(days=1)).isoformat(),
+        })
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('due_date', response.data)
+
+    def test_task_due_date_today_accepted(self):
+        response = self.client.post('/api/tasks/', {
+            'title': 'Сегодня',
+            'status': 'new',
+            'due_date': date.today().isoformat(),
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_task_due_date_future_accepted(self):
+        response = self.client.post('/api/tasks/', {
+            'title': 'Будущая',
+            'status': 'new',
+            'due_date': (date.today() + timedelta(days=5)).isoformat(),
+        })
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_employee_update_same_email_allowed(self):
+        response = self.client.patch(
+            f'/api/employees/{self.employee.id}/',
+            {'full_name': 'Обновлённый'},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.employee.refresh_from_db()
+        self.assertEqual(self.employee.full_name, 'Обновлённый')
+
+    def test_employee_update_to_other_email_allowed_if_free(self):
+        response = self.client.patch(
+            f'/api/employees/{self.employee.id}/',
+            {'email': 'new@employee.com'},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_employee_update_to_taken_email_rejected(self):
+        Employee.objects.create(
+            full_name='Другой',
+            position='Дизайнер',
+            email='other@employee.com',
+        )
+        response = self.client.patch(
+            f'/api/employees/{self.employee.id}/',
+            {'email': 'other@employee.com'},
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('email', response.data)
+
+    def test_employee_create_duplicate_email_rejected(self):
+        response = self.client.post('/api/employees/', {
+            'full_name': 'Новый',
+            'position': 'Тестировщик',
+            'email': 'test@employee.com',
+        })
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('email', response.data)
