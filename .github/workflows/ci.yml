@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ develop, feature/ci-cd ]
+  pull_request:
+    branches: [ develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies (auth-service)
+        working-directory: ./auth-service
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests (auth-service)
+        working-directory: ./auth-service
+        run: python manage.py test --settings=config.test_settings
+
+      - name: Install dependencies (task-service)
+        working-directory: ./task-service
+        run: pip install -r requirements.txt
+
+      - name: Run tests (task-service)
+        working-directory: ./task-service
+        run: python manage.py test --settings=config.test_settings
+
+      - name: Install dependencies (notification-service)
+        working-directory: ./notification-service
+        run: pip install -r requirements.txt
+
+      - name: Run tests (notification-service)
+        working-directory: ./notification-service
+        run: python manage.py test --settings=config.test_settings
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Run flake8 (auth-service)
+        working-directory: ./auth-service
+        run: flake8 .
+
+      - name: Run flake8 (task-service)
+        working-directory: ./task-service
+        run: flake8 .
+
+      - name: Run flake8 (notification-service)
+        working-directory: ./notification-service
+        run: flake8 .

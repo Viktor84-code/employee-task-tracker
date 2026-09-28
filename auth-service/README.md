@@ -1,48 +1,39 @@
-# Auth Service
+# auth-service
 
-Микросервис авторизации и управления пользователями.
+Сервис аутентификации и управления пользователями.
 
-## Технологии
+## Стек
 
-- Django 5.2
-- DRF
+- Django 4 + DRF
+- PostgreSQL (`auth_db`)
 - JWT (SimpleJWT)
-- PostgreSQL
 
-## Запуск в Docker
+## Запуск локально
 
-```bash
-docker-compose up -d auth-service
-```
+См. корневой [README](../README.md).
 
-API
-POST /api/auth/register/ — регистрация
+## Эндпоинты
 
-POST /api/auth/login/ — логин (JWT)
+| Метод | URL | Описание |
+|---|---|---|
+| POST | `/api/auth/register/` | Регистрация пользователя |
+| POST | `/api/auth/login/` | Получить access + refresh токены |
+| POST | `/api/auth/refresh/` | Обновить access-токен |
+| GET | `/api/auth/users/` | Список пользователей |
 
-GET /api/auth/users/ — список пользователей# Task Service
+## Swagger
 
-Микросервис управления задач и сотрудниками.
+http://localhost:8002/api/docs/
 
-## Технологии
+## Переменные окружения
 
-- Django 5.2
-# Notification Service
+- `SECRET_KEY` — Django SECRET_KEY
+- `POSTGRES_DB` — `auth_db`
+- `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`
+- `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_EMAIL`, `DJANGO_SUPERUSER_PASSWORD`
 
-Микросервис уведомлений (email).
-
-## Технологии
-
-- Django 5.2
-- DRF
-- Celery
-- Redis
-
-## Запуск в Docker
+## Тесты
 
 ```bash
-docker-compose up -d notification-service
+python manage.py test --settings=config.test_settings
 ```
-
-API
-Уведомления через Celery (email)
