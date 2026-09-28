@@ -1,0 +1,80 @@
+name: Deploy
+
+on:
+  push:
+    branches: [develop, feature/ci-cd]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Install dependencies (auth-service)
+        working-directory: ./auth-service
+        run: pip install -r requirements.txt
+      - name: Run tests (auth-service)
+        working-directory: ./auth-service
+        run: python manage.py test --settings=config.test_settings
+      - name: Install dependencies (task-service)
+        working-directory: ./task-service
+        run: pip install -r requirements.txt
+      - name: Run tests (task-service)
+        working-directory: ./task-service
+        run: python manage.py test --settings=config.test_settings
+      - name: Install dependencies (notification-service)
+        working-directory: ./notification-service
+        run: pip install -r requirements.txt
+      - name: Run tests (notification-service)
+        working-directory: ./notification-service
+        run: python manage.py test --settings=config.test_settings
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v5
+      - name: Build Docker images
+        run: docker compose build
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Deploy to Yandex Cloud via SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOST: ${{ secrets.HOST }}
+          USER: ${{ secrets.USER }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          DJANGO_SUPERUSER_USERNAME: ${{ secrets.DJANGO_SUPERUSER_USERNAME }}
+          DJANGO_SUPERUSER_EMAIL: ${{ secrets.DJANGO_SUPERUSER_EMAIL }}
+          DJANGO_SUPERUSER_PASSWORD: ${{ secrets.DJANGO_SUPERUSER_PASSWORD }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > key.pem
+          chmod 600 key.pem
+
+          ssh -i key.pem -o StrictHostKeyChecking=no $USER@$HOST "
+            cd /home/briktor/employee-task-tracker &&
+            git fetch origin &&
+            git reset --hard origin/${GITHUB_REF_NAME} &&
+
+            cat > .env <<EOF
+          SECRET_KEY=${SECRET_KEY}
+          POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+          DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
+          DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
+          DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+          EOF
+
+            docker-compose down &&
+            docker-compose up --build -d &&
+            docker image prune -f
+          "

@@ -6,14 +6,22 @@
     </div>
 
     <div class="content-card">
-      <ul v-if="store.busyEmployees.length">
-        <li v-for="employee in store.busyEmployees" :key="employee.id" class="employee-item">
+      <ul v-if="busyEmployees.length">
+        <li v-for="employee in busyEmployees" :key="employee.id" class="employee-item">
           <div class="avatar">{{ initials(employee.full_name) }}</div>
           <div class="employee-info">
             <span class="employee-name">{{ employee.full_name }}</span>
             <span class="employee-position">{{ employee.position }}</span>
+            <ul v-if="employee.active_tasks && employee.active_tasks.length" class="task-list">
+              <li v-for="task in employee.active_tasks" :key="task.id" class="task-item">
+                <span class="task-title">{{ task.title }}</span>
+                <span :class="['status-dot', `dot-${task.status}`]">
+                  {{ statusLabel(task.status) }}
+                </span>
+              </li>
+            </ul>
           </div>
-          <span class="busy-badge">Занят</span>
+          <span class="busy-badge">Занят ({{ employee.active_tasks_count }})</span>
         </li>
       </ul>
 
@@ -28,14 +36,24 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useDataStore } from '../stores/data'
 
 const store = useDataStore()
 
+// только те, у кого реально есть активные задачи
+const busyEmployees = computed(() =>
+  (store.busyEmployees || []).filter(e => (e.active_tasks_count || 0) > 0)
+)
+
 const initials = (name) => {
   if (!name) return '?'
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+}
+
+const statusLabel = (status) => {
+  const labels = { new: 'Новая', in_progress: 'В работе', done: 'Завершена' }
+  return labels[status] || status
 }
 
 onMounted(() => {
@@ -124,6 +142,55 @@ ul {
 .employee-position {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+.task-list {
+  list-style: none;
+  padding: 6px 0 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.task-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 320px;
+}
+
+.status-dot {
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.dot-new {
+  background: var(--info-bg);
+  color: var(--info);
+}
+
+.dot-in_progress {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.dot-done {
+  background: var(--success-bg);
+  color: var(--success);
 }
 
 .busy-badge {

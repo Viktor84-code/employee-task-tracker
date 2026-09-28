@@ -3,7 +3,12 @@ from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Employee, Project, Task
-from .serializers import EmployeeSerializer, ProjectSerializer, TaskSerializer
+from .serializers import (
+    EmployeeSerializer,
+    EmployeeBusySerializer,
+    ProjectSerializer,
+    TaskSerializer,
+)
 
 
 class EmployeeViewSet(viewsets.ModelViewSet):
@@ -20,7 +25,7 @@ class EmployeeViewSet(viewsets.ModelViewSet):
             )
         ).order_by('-active_tasks_count')
 
-        serializer = self.get_serializer(employees, many=True)
+        serializer = EmployeeBusySerializer(employees, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=['get'])
@@ -59,25 +64,29 @@ class TaskViewSet(viewsets.ModelViewSet):
             subtasks__status='in_progress'
         ).distinct()
 
-        result = []
-        for task in important_tasks:
-            least_loaded = Employee.objects.annotate(
+        employees_with_load = list(
+            Employee.objects.annotate(
                 active_tasks_count=Count(
                     'tasks',
                     filter=Q(tasks__status__in=['new', 'in_progress'])
                 )
-            ).order_by('active_tasks_count').first()
+            ).order_by('active_tasks_count')
+        )
 
-            parent_assignee = task.parent_task.assignee if task.parent_task else None
+        least_loaded = employees_with_load[0] if employees_with_load else None
+        min_load = least_loaded.active_tasks_count if least_loaded else 0
 
+        result = []
+        for task in important_tasks:
             candidates = []
-            if parent_assignee:
-                parent_load = parent_assignee.tasks.filter(
+
+            task_assignee = task.assignee
+            if task_assignee:
+                assignee_load = task_assignee.tasks.filter(
                     status__in=['new', 'in_progress']
                 ).count()
-                least_load = least_loaded.active_tasks_count if least_loaded else 0
-                if parent_load <= least_load + 2:
-                    candidates.append(parent_assignee.full_name)
+                if assignee_load <= min_load + 2:
+                    candidates.append(task_assignee.full_name)
 
             if least_loaded:
                 candidates.append(least_loaded.full_name)
@@ -85,7 +94,7 @@ class TaskViewSet(viewsets.ModelViewSet):
             result.append({
                 'task': task.title,
                 'due_date': task.due_date,
-                'employees': list(set(candidates))
+                'employees': list(set(candidates)),
             })
 
         return Response(result)
